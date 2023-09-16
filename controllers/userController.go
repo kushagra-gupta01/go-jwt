@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/kushagra-gupta01/go-jwt/database"
@@ -126,7 +125,7 @@ func Login()gin.HandlerFunc{
 			c.JSON(http.StatusInternalServerError,gin.H{"error":"user not found"})
 		}
 
-		token,refreshToken,_ := helpers.GenerateAllTokens(*foundUser.Email, *foundUser.First_Name,*foundUser.Last_Name,*foundUser.User_type,*foundUser.User_id)
+		token,refreshToken,_ := helpers.GenerateAllTokens(*foundUser.Email, *foundUser.First_Name,*foundUser.Last_Name,*foundUser.User_type,*&foundUser.User_id)
 		helpers.UpdateAllTokens(token, refreshToken, foundUser.User_id)
 		err = userCollection.FindOne(ctx, bson.M{"user_id":foundUser.User_id}).Decode(&foundUser)
 		if err !=nil{
@@ -139,11 +138,11 @@ func Login()gin.HandlerFunc{
 
 func GetUsers() gin.HandlerFunc{
 	return func(c *gin.Context) {
-		err := helpers.CheckUserType(c,"ADMIN");err!=nil{
+		if err := helpers.CheckUserType(c,"ADMIN");err!=nil{
 			c.JSON(http.StatusBadGateway,gin.H{"error":err.Error()})
 			return
 		}
-		var ctx,cancel := context.WithTimeout(context.Background(),100*time.Second)
+		ctx,cancel := context.WithTimeout(context.Background(),100*time.Second)
 		recordPerPage,err := strconv.Atoi(c.Query("recordPerPage"))	
 		if err !=nil || recordPerPage <1{
 			recordPerPage = 10
@@ -159,17 +158,17 @@ func GetUsers() gin.HandlerFunc{
 		groupStage := bson.D{{"$group",bson.D{
 			{"_id", bson.D{{"_id", "null"}}},
 			{"total_count",bson.D{{"$sum",1}}},
-			{"data",bson.D{{"$push","$$ROOT"}}}
+			{"data",bson.D{{"$push","$$ROOT"}}},
 		}}}
 		projectStage := bson.D{
 			{"$project",bson.D{
 				{"_id",0},
 				{"total_count",1},
 				{"user_items",bson.D{{"$slice", []interface{}{"$data",startIndex,recordPerPage}}}},
-			}}
+			}},
 		}
 		result,err := userCollection.Aggregate(ctx,mongo.Pipeline{
-			matchStage, groupStage, projectStage
+			matchStage, groupStage, projectStage,
 		})
 		defer cancel()
 		if err !=nil{
@@ -186,7 +185,6 @@ func GetUsers() gin.HandlerFunc{
 func GetUser()gin.HandlerFunc{
 	return func(c *gin.Context) {
 		userId := c.Param("user_id")
-
 		if err := helpers.MatchUserTypeToUid(c,userId);err !=nil{
 			c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
 			return
