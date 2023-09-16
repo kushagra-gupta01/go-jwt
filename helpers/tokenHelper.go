@@ -7,8 +7,6 @@ import (
 	"os"
 	"time"
 	"github.com/form3tech-oss/jwt-go"
-	"github.com/golang-jwt/jwt"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/kushagra-gupta01/go-jwt/database"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -47,13 +45,45 @@ func GenerateAllTokens(email string, firstName string, lastName string, userType
 		},
 	}
 
-	token,err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(SECRET_KEY))
+	token,err:= jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(SECRET_KEY))
+	if err!=nil{
+		log.Panic(err)
+	}
 	refreshToken,err := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims).SignedString([]byte(SECRET_KEY))
 	if err !=nil{
 		log.Panic(err)
 		return
 	}
 	return token, refreshToken, err
+}
+
+func ValidateToken(signedToken string)(claims *SignedDetails,msg string){
+	token,err := jwt.ParseWithClaims(
+		signedToken,
+		&SignedDetails{},
+		func (token *jwt.Token)(interface{}, error){
+			return []byte(SECRET_KEY),nil
+		},
+	)
+
+	if err !=nil{
+		msg = err.Error()
+		return
+	}
+
+	claims,ok := token.Claims.(*SignedDetails) 
+	if !ok{
+		msg = fmt.Sprintf("the token is invalid")
+		msg = err.Error()
+		return
+	}
+
+	if claims.ExpiresAt < time.Now().Local().Unix(){
+		msg = fmt.Sprintf("token is expired")
+		msg = err.Error()
+		return
+	}
+	return claims,msg
 }
 
 func UpdateAllTokens(signedToken string, signedRefreshToken string, userId string){
