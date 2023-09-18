@@ -18,7 +18,7 @@ type SignedDetails struct{
 	Email				string
 	First_Name	string
 	Last_Name		string
-	User_id			string
+	Uid		    	string
 	User_type		string
 	jwt.StandardClaims
 }
@@ -32,7 +32,7 @@ func GenerateAllTokens(email string, firstName string, lastName string, userType
 		Email: email,
 		First_Name: firstName,
 		Last_Name: lastName,
-		User_id: uid,
+		Uid: uid,
 		User_type: userType,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Local().Add(time.Hour * time.Duration(24)).Unix(),

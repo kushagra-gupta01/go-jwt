@@ -18,7 +18,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var userCollection = database.OpenCollection(database.Client, "user")
+var userCollection *mongo.Collection = database.OpenCollection(database.Client, "user")
 var validate = validator.New()
 
 func HashPassword(password string) string{
@@ -196,7 +196,7 @@ func GetUser()gin.HandlerFunc{
 		err := userCollection.FindOne(ctx,bson.M{"user_id":userId}).Decode(&user)
 		defer cancel()
 		if err!=nil{
-			c.JSON(http.StatusInternalServerError,err.Error())
+			c.JSON(http.StatusInternalServerError,gin.H{"error":err.Error()})
 			return
 		}
 		c.JSON(http.StatusOK,user)

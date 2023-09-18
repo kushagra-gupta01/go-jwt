@@ -1,10 +1,11 @@
 package main
 
 import (
-	"os"
 	"log"
+	"os"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/kushagra-gupta01/go-jwt/middleware"
 	"github.com/kushagra-gupta01/go-jwt/routes"
 )
 
@@ -24,7 +25,7 @@ func main() {
 
 	routes.AuthRouter(router)
 	routes.UserRouter(router)
-
+	router.Use(middleware.Authenticate())
 	router.GET("/api-1",func(ctx *gin.Context) {
 		ctx.JSON(200,gin.H{"success":"Access granted for api-1"})
 	})
