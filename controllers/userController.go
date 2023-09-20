@@ -48,12 +48,14 @@ func SignUp()gin.HandlerFunc{
 
 		if err := c.BindJSON(&user);err!=nil{
 			c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+			defer cancel()
 			return
 		}
 
 		validationErr := validate.Struct(user)
 		if validationErr !=nil{
 			c.JSON(http.StatusBadRequest,gin.H{"error":validationErr.Error()})
+			defer cancel()
 			return
 		}
 
@@ -104,6 +106,7 @@ func Login()gin.HandlerFunc{
 		var foundUser models.User
 		if err := c.BindJSON(&user);err !=nil{
 			c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
+			defer cancel()
 			return
 		}
 		
@@ -116,7 +119,7 @@ func Login()gin.HandlerFunc{
 
 		passwordIsValid,msg := VerifyPassword(*user.Password,*foundUser.Password)
 		defer cancel()
-		if passwordIsValid != true{
+		if !passwordIsValid{
 			c.JSON(http.StatusInternalServerError, gin.H{"error":msg})
 			return
 		}
@@ -166,6 +169,9 @@ func GetUsers() gin.HandlerFunc{
 				{"total_count",1},
 				{"user_items",bson.D{{"$slice", []interface{}{"$data",startIndex,recordPerPage}}}},
 			}},
+		}
+		if err != nil{
+			c.JSON(http.StatusInternalServerError,gin.H{"error":err.Error()})
 		}
 		result,err := userCollection.Aggregate(ctx,mongo.Pipeline{
 			matchStage, groupStage, projectStage,
